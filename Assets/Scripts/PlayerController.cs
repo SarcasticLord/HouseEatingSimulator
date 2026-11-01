@@ -1,10 +1,12 @@
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour {
+public class PlayerController : MonoBehaviour
+{
 
     [Header("References")]
     public Rigidbody rb;
     public Transform Head;
+    public Collider Sucker;
     public Camera Camera;
     public AudioSource audioSource;
     public CraftingManager craftingManager;
@@ -32,7 +34,8 @@ public class PlayerController : MonoBehaviour {
         instance = this;
     }
 
-    void Start() {
+    void Start()
+    {
         Cursor.lockState = CursorLockMode.Locked;
     }
 
@@ -49,14 +52,15 @@ public class PlayerController : MonoBehaviour {
         }
     }
 
-    void Update() {
+    void Update()
+    {
 
         Cursor.visible = true;
 
         // Horizontal Rotation
         transform.Rotate(Vector3.up * Input.GetAxis("Mouse X") * 2f);
 
-        newVelocity = Vector3.up * rb.velocity.y;
+        newVelocity = Vector3.up * rb.linearVelocity.y;
         float speed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
         newVelocity.x = Input.GetAxis("Horizontal") * speed;
         newVelocity.z = Input.GetAxis("Vertical") * speed;
@@ -70,7 +74,7 @@ public class PlayerController : MonoBehaviour {
                 isJumping = true;
             }
         }
-        rb.velocity = transform.TransformDirection(newVelocity);
+        rb.linearVelocity = transform.TransformDirection(newVelocity);
 
         // Picking objects
         RaycastHit hit;
@@ -96,13 +100,37 @@ public class PlayerController : MonoBehaviour {
             }
         }
 
-
-        if (Input.GetKeyDown(KeyCode.R)) {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
             craftingManager.Craft(itemToCraft);
         }
 
-        if (Input.GetKeyDown(KeyCode.E)) {
-            if (attachedObject != null && isEating == false) {
+        if (Input.GetButtonDown("Fire1"))
+        {
+            if (attachedObject == null)
+            {
+                if (cast)
+                {
+                    if (hit.transform.CompareTag("Pickable"))
+                    {
+                        attachedObject = hit.transform;
+                        attachedObject.SetParent(transform);
+
+                        if (attachedObject.GetComponent<Rigidbody>() != null)
+                            attachedObject.GetComponent<Rigidbody>().isKinematic = true;
+
+                        if (attachedObject.GetComponent<Collider>() != null)
+                            attachedObject.GetComponent<Collider>().enabled = false;
+
+                    }
+                }
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            if (attachedObject != null && isEating == false)
+            {
 
                 int totalItems = 0;
 
@@ -122,25 +150,11 @@ public class PlayerController : MonoBehaviour {
 
                 isEating = true;
             }
-            if (attachedObject == null) {
-                if (cast) {
-                    if (hit.transform.CompareTag("Pickable")) {
-                        attachedObject = hit.transform;
-                        attachedObject.SetParent(transform);
-
-                        if (attachedObject.GetComponent<Rigidbody>() != null)
-                            attachedObject.GetComponent<Rigidbody>().isKinematic = true;
-
-                        if (attachedObject.GetComponent<Collider>() != null)
-                            attachedObject.GetComponent<Collider>().enabled = false;
-                        
-                    }
-                }
-            }
         }
     }
 
-    void LateUpdate() {
+    void LateUpdate()
+    {
 
         // Vertical Rotation
         Vector3 e = Head.eulerAngles;
@@ -149,27 +163,33 @@ public class PlayerController : MonoBehaviour {
         Head.eulerAngles = e;
 
         // Pick up object
-        if (attachedObject != null) {
+        if (attachedObject != null)
+        {
 
             Vector3 newPosition = Head.position + Head.forward * attachedDistance;
 
             if (isEating)
             {
-            Quaternion lookRotation = Quaternion.LookRotation(Head.position - attachedObject.position);
-            lookRotation *= Quaternion.Euler(100f, 0f, 0f);
-            lookRotation *= Quaternion.Euler(0f, 90f, 0f);
-            attachedObject.rotation = Quaternion.Slerp(attachedObject.rotation, lookRotation, Time.deltaTime * rotationSpeed);
-            newPosition.y -= 0.4f;
+                Quaternion lookRotation = Quaternion.LookRotation(Head.position - attachedObject.position);
+                lookRotation *= Quaternion.Euler(100f, 0f, 0f);
+                lookRotation *= Quaternion.Euler(0f, 90f, 0f);
+                attachedObject.rotation = Quaternion.Slerp(attachedObject.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+                newPosition.y -= 0.4f;
             }
             else
             {
-            Quaternion lookRotation = Quaternion.LookRotation(Head.position - attachedObject.position);
-            lookRotation *= Quaternion.Euler(0f, 90f, 0f);
-            attachedObject.rotation = Quaternion.Slerp(attachedObject.rotation, lookRotation, Time.deltaTime * rotationSpeed);
+                Quaternion lookRotation = Quaternion.LookRotation(Head.position - attachedObject.position);
+                lookRotation *= Quaternion.Euler(0f, 90f, 0f);
+                attachedObject.rotation = Quaternion.Slerp(attachedObject.rotation, lookRotation, Time.deltaTime * rotationSpeed);
             }
 
             attachedObject.position = newPosition;
         }
+    }
+
+    public void SUCKTIME()
+    {
+        Sucker.gameObject.SetActive(true);
     }
 
     public void EatItem()
@@ -181,7 +201,7 @@ public class PlayerController : MonoBehaviour {
         eatCounter = 110;
         attachedDistance = 1.5f;
     }
-    
+
 
     public void SetItemToCraft(InventoryItemData item)
     {
@@ -189,7 +209,8 @@ public class PlayerController : MonoBehaviour {
     }
 
     // Restrict the vertical head rotation (prevent from bending backwards)
-    public static float RestrictAngle(float angle, float angleMin, float angleMax) {
+    public static float RestrictAngle(float angle, float angleMin, float angleMax)
+    {
         if (angle > 180)
             angle -= 360;
         else if (angle < -180)
@@ -203,12 +224,14 @@ public class PlayerController : MonoBehaviour {
         return angle;
     }
 
-    void OnCollisionStay(Collision col) {
+    void OnCollisionStay(Collision col)
+    {
         isGrounded = true;
         isJumping = false;
     }
 
-    void OnCollisionExit(Collision col) {
+    void OnCollisionExit(Collision col)
+    {
         isGrounded = false;
     }
 }
